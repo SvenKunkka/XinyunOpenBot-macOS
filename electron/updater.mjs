@@ -8,6 +8,8 @@
 // electron-updater is vendored (electron/vendor/electron-updater.cjs) because
 // the packaged app ships no node_modules.
 import { app, ipcMain } from "electron";
+import fs from "node:fs";
+import path from "node:path";
 import { createRequire } from "node:module";
 import { createUpdaterCoordinator } from "./updater-coordinator.mjs";
 
@@ -42,10 +44,42 @@ export function registerUpdaterIpc() {
   });
 }
 
+// Local/dev builds must never be replaced by an upstream release. The
+// packaged app ships app-update.yml pointing at the PUBLIC upstream repo
+// (dongpen-max/xinyunopenbot-releases), so on a locally-built copy a plain
+// "check for updates" would offer to install upstream's build over ours —
+// silently swapping a locally verified binary for an unverified one.
+//
+// Auto-download and auto-install were already off (button-driven), but the
+// periodic check still surfaced an actionable "update available" banner. So
+// the whole updater is now OPT-IN: it stays dormant unless this exact build
+// was explicitly marked as an official release build.
+//
+// Enable for a real release by setting either:
+//   - env  OMB_ENABLE_UPDATER=1            (ad-hoc testing)
+//   - file <Resources>/updater-enabled     (baked in at release time)
+// Keeps the future path to a real update feed intact: point `publish` in
+// electron-builder.yml at the official repo/draft and ship the marker file.
+function updaterEnabled() {
+  if (process.env.OMB_ENABLE_UPDATER === "1") return true;
+  try {
+    return fs.existsSync(path.join(process.resourcesPath, "updater-enabled"));
+  } catch {
+    return false;
+  }
+}
+
 export function startUpdater(mainWindow) {
   win = mainWindow;
   // dev / unsigned builds can't auto-update — leave the banner dormant
   if (!app.isPackaged) {
+    updaterCoordinator = null;
+    setState({ status: "idle" });
+    return;
+  }
+  if (!updaterEnabled()) {
+    // Disabled (the default for local builds): no check, no banner, and the
+    // IPC handlers stay no-ops so a stray click can't reach the network.
     updaterCoordinator = null;
     setState({ status: "idle" });
     return;

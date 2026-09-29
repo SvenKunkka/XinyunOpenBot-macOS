@@ -35,6 +35,12 @@ function knownDirs(): string[] {
     join(home, ".claude", "local"), // claude "local install"
     "/opt/homebrew/bin", // brew, Apple silicon
     "/usr/local/bin", // brew Intel / classic installs
+    // pnpm's globalBinDir on macOS — where `npm i -g` / `pnpm add -g` put
+    // the engine CLIs when node itself came from pnpm or nvm instead of
+    // brew, so the global prefix is not /opt/homebrew. pnpm only exports
+    // this through PNPM_HOME (set by `pnpm setup`), which a Finder launch
+    // never sees, and it stays empty for brew-node users — harmless.
+    join(home, "Library", "pnpm", "bin"),
     join(home, ".volta", "bin"),
     join(home, ".bun", "bin"),
     join(home, ".asdf", "shims"),

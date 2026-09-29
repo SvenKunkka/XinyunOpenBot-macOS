@@ -1,4 +1,4 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, session, shell, systemPreferences, utilityProcess } from "electron";
+import { app, BrowserWindow, desktopCapturer, ipcMain, Menu, session, shell, systemPreferences, utilityProcess } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -135,6 +135,70 @@ function stopServerPackaged() {
   });
 }
 
+// Application menu. Without one, macOS has no menu bar at all for this app:
+// ⌘Q / ⌘W / ⌘H have no binding, and the standard editing shortcuts
+// (⌘C ⌘V ⌘X ⌘A ⌘Z) do not reach the focused text field — which breaks basic
+// copy/paste in the composer and in chat. The roles below are Electron's
+// built-ins, so they wire the native first-responder actions for us.
+//
+// Windows keeps its frameless overlay caption buttons; a menu bar there would
+// add a second, redundant row, so it stays null.
+function buildAppMenu() {
+  if (process.platform !== "darwin") return null;
+  const appName = app.getName();
+  return Menu.buildFromTemplate([
+    {
+      label: appName,
+      submenu: [
+        { role: "about", label: `关于 ${appName}` },
+        { type: "separator" },
+        { role: "services", label: "服务" },
+        { type: "separator" },
+        { role: "hide", label: `隐藏 ${appName}` },
+        { role: "hideOthers", label: "隐藏其他" },
+        { role: "unhide", label: "全部显示" },
+        { type: "separator" },
+        { role: "quit", label: `退出 ${appName}` },
+      ],
+    },
+    {
+      label: "编辑",
+      submenu: [
+        { role: "undo", label: "撤销" },
+        { role: "redo", label: "重做" },
+        { type: "separator" },
+        { role: "cut", label: "剪切" },
+        { role: "copy", label: "拷贝" },
+        { role: "paste", label: "粘贴" },
+        { role: "pasteAndMatchStyle", label: "粘贴并匹配样式" },
+        { role: "delete", label: "删除" },
+        { role: "selectAll", label: "全选" },
+      ],
+    },
+    {
+      label: "显示",
+      submenu: [
+        { role: "reload", label: "重新载入" },
+        { type: "separator" },
+        { role: "resetZoom", label: "实际大小" },
+        { role: "zoomIn", label: "放大" },
+        { role: "zoomOut", label: "缩小" },
+        { type: "separator" },
+        { role: "togglefullscreen", label: "进入全屏幕" },
+      ],
+    },
+    {
+      label: "窗口",
+      submenu: [
+        { role: "minimize", label: "最小化" },
+        { role: "zoom", label: "缩放" },
+        { type: "separator" },
+        { role: "front", label: "前置全部窗口" },
+      ],
+    },
+  ]);
+}
+
 const ERROR_PAGE =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
@@ -249,6 +313,9 @@ ipcMain.handle("speech:start", (event) => {
 ipcMain.handle("speech:stop", () => stopSpeech());
 
 app.whenReady().then(async () => {
+  // macOS needs a menu for ⌘Q/⌘W/⌘H and the editing shortcuts; no-op elsewhere.
+  const menu = buildAppMenu();
+  if (menu) Menu.setApplicationMenu(menu);
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   // getDisplayMedia in the renderer → this handler → ScreenCaptureKit, all
   // inside the app's own processes — the one capture path macOS reliably

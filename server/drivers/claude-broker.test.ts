@@ -78,6 +78,7 @@ describe("Claude permission broker", () => {
       onResolve: () => {},
       timeoutMs: 10_000,
     });
+    await broker.ready;
     const conn = await connectSocket(socketPath);
     sockets.push(conn);
     const nextAnswer = answerQueue(conn);
@@ -105,6 +106,7 @@ describe("Claude permission broker", () => {
       onResolve: () => {},
       timeoutMs: 10_000,
     });
+    await broker.ready;
     const first = await connectSocket(socketPath);
     const second = await connectSocket(socketPath);
     sockets.push(first, second);

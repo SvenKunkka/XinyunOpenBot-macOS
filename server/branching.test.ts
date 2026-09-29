@@ -184,12 +184,26 @@ posixOnly("conversation branching e2e (fake ACP fleet)", () => {
       expect((await api("POST", `/api/bots/${created.id}/messages`, { text: "first try" })).status).toBe(202);
       await waitFor(async () => (await getBot(created.id)).busy === true, "the hung turn to start");
 
-      // a second send while busy is refused — never a parallel turn
+      // a second send while busy is queued behind the live turn — accepted
+      // (202) but never started in parallel, so there is still just one
+      // running turn and no second tail
       const parallel = await api("POST", `/api/bots/${created.id}/messages`, { text: "sneaky second" });
-      expect(parallel.status).toBe(409);
+      expect(parallel.status).toBe(202);
+      expect(parallel.body).toMatchObject({ ok: true, queued: true, queueDepth: 1 });
+      const queuedBot = await getBot(created.id);
+      expect(queuedBot.busy).toBe(true);
+      expect(queuedBot.execution).toMatchObject({ status: "running", queueDepth: 1 });
+      // the queued send recorded its message but did NOT start a second
+      // concurrent turn: "first try" is the only turn that ever ran, and
+      // the queued text is still waiting its turn
+      expect(queuedBot.messages.some((m: Msg) => m.role === "user" && m.text === "sneaky second")).toBe(true);
+      expect(queuedBot.execution.queueDepth).toBe(1);
 
       // switching versions under a live turn is refused too
       const bot0 = await getBot(created.id);
+      // the queued turn is genuinely waiting, not running: stopping the live
+      // turn is what lets it start, so nothing about it has run yet
+      expect(bot0.messages.filter((m: Msg) => m.role === "bot" && m.text === "sneaky second")).toHaveLength(0);
       const anyMsg = bot0.messages[0];
       expect((await api("POST", `/api/bots/${created.id}/active-branch`, { messageId: anyMsg.id })).status).toBe(409);
 

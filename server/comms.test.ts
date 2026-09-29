@@ -179,10 +179,11 @@ posixOnly("comms e2e (fake ACP fleet)", () => {
         await new Promise((r) => setTimeout(r, 250));
       }
 
-      // A's answer contains B's actual reply, via the proxy's wrapper
+      // A's answer acknowledges the handoff rather than carrying B's reply:
+      // delegation is async now, so the asker gets a handoff id and is told
+      // the result will come back through the shared channel
       const reply = askerBot.messages.findLast((m: any) => m.kind === "text" && m.role === "bot");
-      expect(reply.text).toContain("Helper replied:");
-      expect(reply.text).toContain("hello from fake acp"); // B's happy-path turn text
+      expect(reply.text).toMatch(/已将任务异步交给 Helper，handoffId=[\w-]+/);
 
       // visibility: A's thread shows a clickable "Messaged @Helper" chip
       // that links to the auto-created bot⇄bot channel
@@ -191,14 +192,32 @@ posixOnly("comms e2e (fake ACP fleet)", () => {
       expect(note.comm?.groupId).toBeTruthy();
       expect(note.comm?.withName).toBe("Helper");
 
+      // the handoff itself is async: B runs its turn after A has already
+      // answered, so wait for B's turn to finish before inspecting its work
+      let state: any;
+      const handoffDeadline = Date.now() + 25_000;
+      for (;;) {
+        state = (await api("GET", "/api/bots")).body;
+        const peer = state.bots.find((b: any) => b.id === helper.id);
+        const done = peer.messages.some(
+          (m: any) => m.kind === "text" && m.role === "bot" && m.text?.includes("peer says:"),
+        );
+        if (done && !peer.busy) break;
+        if (Date.now() > handoffDeadline) {
+          throw new Error(
+            `Helper's async turn never settled. messages: ${JSON.stringify(peer.messages.slice(-4))}\nstderr: ${stderr.slice(-2000)}`,
+          );
+        }
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
       // the exchange is mirrored into that channel, attributed to each bot
-      const state = (await api("GET", "/api/bots")).body;
       const channel = state.groups.find((g: any) => g.id === note.comm.groupId);
       expect(channel?.dm).toBe(true);
       expect(channel.memberIds).toContain(asker.id);
       expect(channel.memberIds).toContain(helper.id);
       expect(channel.messages.some((m: any) => m.from?.botId === asker.id)).toBe(true);
-      expect(channel.messages.some((m: any) => m.from?.botId === helper.id && m.text?.includes("hello from fake acp"))).toBe(true);
+      expect(channel.messages.some((m: any) => m.from?.botId === helper.id && m.text?.includes("peer says:"))).toBe(true);
 
       // B's thread received the attributed message and ran a real turn,
       // plus a receive-side chip pointing at the same channel

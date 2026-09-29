@@ -38,9 +38,18 @@ extraResources:
     to: server
 
 mac:
+  # The speech helper is optional dead code today (voice input goes through
+  # MediaRecorder + server STT), and it cannot always be compiled — Apple's
+  # CLT ships a duplicate SwiftBridging modulemap that breaks any Swift
+  # framework import. Only stage it when scripts/build-speech.mjs produced a
+  # binary, so a toolchain problem degrades to "feature absent" instead of
+  # failing the whole package.
   extraResources:
     - from: electron/resources/speech-helper
       to: speech-helper
+      # electron-builder treats a missing `from` as a warning already; kept
+      # explicit so the intent is documented at the point of use.
+      filter: ["**/*"]
   target:
     - target: dmg
       arch: arm64

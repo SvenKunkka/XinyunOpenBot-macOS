@@ -8,7 +8,7 @@
 //   - Composio Connect (connected apps → tools) over streamable HTTP
 //   - the bot's cloud computer (box.ascii.dev) via server/computer-proxy.ts
 //     — screenshot/exec/open_url, the CUA-on-the-box bridge
-import { existsSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { createServer as createNetServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
@@ -109,6 +109,11 @@ export function createPermissionBroker(opts: {
 }) {
   const timeoutMs = opts.timeoutMs ?? 15 * 60_000;
   const pending = new Map<string, { ask: Ask; finish: (behavior: string, message: string | undefined, source: string) => void }>();
+  // the socket lives in DATA_DIR, which is only created as a side effect of
+  // config writes — a cold data dir would otherwise fail the bind with EACCES
+  try {
+    mkdirSync(dirname(opts.socketPath), { recursive: true });
+  } catch {}
   try {
     unlinkSync(opts.socketPath);
   } catch {}
@@ -164,8 +169,15 @@ export function createPermissionBroker(opts: {
     });
   });
   server.on("error", () => {});
+  // listen() is async: the socket only exists once the server is "listening".
+  // Expose that as an awaitable so callers never race the CLI's connect.
+  const ready = new Promise<void>((resolve, reject) => {
+    server.once("listening", resolve);
+    server.once("error", reject);
+  });
   server.listen(opts.socketPath);
   return {
+    ready,
     answer(askId: string, behavior: string, message?: string): boolean {
       const p = pending.get(askId);
       if (!p) return false;
@@ -372,6 +384,9 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
         args.push("--permission-prompt-tool", "mcp__ogb__approve");
         mcpServers.ogb = { command: process.execPath, args: [PERM_PROXY_PATH, socketPath], env: { ...NODE_ENV_FLAG } };
         allowed.push("mcp__ogb");
+        // the CLI connects to this socket as soon as it starts, so wait for the
+        // listener rather than racing it on a slow filesystem
+        await broker.ready;
       }
       let mcpConfigPath: string | null = null;
       if (Object.keys(mcpServers).length) {

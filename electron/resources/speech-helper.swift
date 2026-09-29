@@ -22,9 +22,27 @@ func fail(_ message: String) -> Never {
   exit(1)
 }
 
+// Locale selection. This app is Simplified-Chinese first, so a hardcoded
+// en-US recognizer transcribes Chinese speech badly or not at all. Prefer an
+// explicit locale from the caller (argv[1], e.g. "zh-CN"), then the system's
+// preferred language, then zh-CN — never a hardcoded English default.
+func resolveLocale() -> Locale {
+  if CommandLine.arguments.count > 1 {
+    let arg = CommandLine.arguments[1].trimmingCharacters(in: .whitespaces)
+    if !arg.isEmpty, let r = SFSpeechRecognizer(locale: Locale(identifier: arg)) {
+      return r.locale
+    }
+  }
+  let preferred = Locale.preferredLanguages.first ?? "zh-CN"
+  if let r = SFSpeechRecognizer(locale: Locale(identifier: preferred)) {
+    return r.locale
+  }
+  return Locale(identifier: "zh-CN")
+}
+
 SFSpeechRecognizer.requestAuthorization { status in
   guard status == .authorized else { fail("speech-not-authorized") }
-  guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US")),
+  guard let recognizer = SFSpeechRecognizer(locale: resolveLocale()),
     recognizer.isAvailable
   else { fail("recognizer-unavailable") }
 

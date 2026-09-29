@@ -19,6 +19,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const INSTALLED_DRIVER = "/Applications/CuaDriver.app/Contents/MacOS/cua-driver";
 const STANDALONE_SOCKET = path.join(
@@ -57,7 +58,17 @@ function socketAlive(sockPath) {
 async function startEmbedded(binary) {
   // Dynamic import: the SDK ships a native FFI lib; keep dev startup
   // resilient if it fails to load on this machine.
-  const { EmbeddedCuaDriverHost } = await import("@trycua/cua-driver/embedded");
+  //
+  // A packaged app has no node_modules (electron-builder excludes it), so the
+  // bare specifier cannot resolve from inside app.asar. scripts/
+  // stage-cua-sdk-mac.mjs copies the SDK + its native sibling into
+  // Resources/server/cua-sdk/packages; load it from there when present, and
+  // fall back to normal resolution in development.
+  const staged = path.join(process.resourcesPath, "server", "cua-sdk", "packages", "@trycua", "cua-driver", "dist", "embedded.js");
+  const { EmbeddedCuaDriverHost } =
+    app.isPackaged && fs.existsSync(staged)
+      ? await import(pathToFileURL(staged).href)
+      : await import("@trycua/cua-driver/embedded");
   embeddedHost = new EmbeddedCuaDriverHost(binary, HOST_BUNDLE_ID);
   const conn = await embeddedHost.start();
   return {
@@ -83,10 +94,31 @@ export async function startCua() {
     try {
       connection = await startEmbedded(binary);
     } catch (err) {
-      connection = {
-        mode: "unavailable",
-        reason: `embedded host failed: ${err?.message ?? err}`,
-      };
+      const detail = String(err?.message ?? err);
+      // Embedded mode pairs OUR bundled SDK with whatever cua-driver binary is
+      // on the machine. When the user has a newer standalone CuaDriver.app
+      // installed, the two speak different daemon protocols and the host dies
+      // with EmbeddedDriverError.IncompatibleDaemon. That is a version skew,
+      // not a broken feature: the already-running standalone daemon speaks the
+      // CLI's own protocol, so fall back to it instead of reporting computer
+      // use as unavailable.
+      if (/IncompatibleDaemon/i.test(detail) && (await socketAlive(STANDALONE_SOCKET))) {
+        connection = {
+          mode: "standalone",
+          socketPath: STANDALONE_SOCKET,
+          mcpCommand: binary,
+          mcpArgs: ["mcp"],
+          mcpEnv: {},
+        };
+      } else {
+        connection = {
+          mode: "unavailable",
+          reason: /IncompatibleDaemon/i.test(detail)
+            ? "bundled CUA runtime and the installed cua-driver are different versions; " +
+              "start the standalone daemon (cua-driver serve) or run `cua-driver permissions grant`"
+            : `embedded host failed: ${detail}`,
+        };
+      }
     }
   } else if (await socketAlive(STANDALONE_SOCKET)) {
     // Dev machine with CuaDriver.app's daemon already running.

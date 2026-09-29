@@ -1,4 +1,12 @@
-# XinyunOpen Bot
+# XinyunOpen Bot — macOS
+
+这是 [dongpen-max/XinyunOpenBot](https://github.com/dongpen-max/XinyunOpenBot) 的 macOS 适配分支，保留上游 Git 历史、MIT 许可证和版权声明。适配基于上游提交 `826f0c5f76077514d2eacf6fbe5c88b97f6ce6fb`，应用版本为 `0.1.34`，当前打包目标为 Apple Silicon（arm64）。
+
+本仓库公开源码及构建说明，尚未发布签名、公证的 macOS 安装包。改动包括 Mac 菜单与快捷键、GUI 启动时的 CLI 路径发现、CUA 运行时打包、可选语音辅助程序构建，以及权限 broker 修复。自动更新默认关闭。
+
+**验证边界：** 2026-09-29 重新运行类型检查及测试通过（Vitest 397 通过、3 跳过；Node 测试 16 通过）。先前桌面验收使用本地模拟 OpenAI 兼容服务；真实模型、语音、云电脑及本机电脑控制尚未完成端到端验证。下方保留的上游功能介绍不代表本分支已逐项验证。
+
+详见 [macOS 构建与验证说明](docs/macos.md)。
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dongpen-max/XinyunOpenBot/main/docs/promo/grok-alternative/ready/00-cover.png" alt="XinyunOpen Bot — 开源的 Grok Bot 平替" width="100%" />
@@ -21,7 +29,7 @@ XinyunOpen Bot 是一个基于 Electron、React 和 TypeScript 的桌面 AI 机�
 
 ### macOS
 
-macOS 版本仍在整理发布流程。当前可从源码运行；后续安装包会发布到同一 Releases 页面。
+本分支支持从源码构建 arm64 的 DMG 和 ZIP。请参阅 [macOS 构建与验证说明](docs/macos.md)；上方 Windows 下载链接属于上游项目。本仓库暂未发布 macOS 二进制安装包。
 
 ## 为什么做 XinyunOpen Bot
 
