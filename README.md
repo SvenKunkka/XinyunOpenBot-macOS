@@ -1,6 +1,36 @@
 <!-- SVENKUNKKA-README-NAV:BEGIN -->
-[中文项目说明](#project-overview-zh) · [English overview](#project-overview-en) · [维护者 X / Maintainer on X](https://x.com/Svenu1s5)
+[English overview](#project-overview-en) · [中文项目说明](#project-overview-zh) · [Maintainer on X / 维护者 X](https://x.com/Svenu1s5)
 <!-- SVENKUNKKA-README-NAV:END -->
+
+<!-- SVENKUNKKA-PROJECT-INFO:BEGIN -->
+
+<a id="project-overview-en"></a>
+## English project overview
+
+A macOS adaptation of dongpen-max/XinyunOpenBot preserving upstream history and the MIT license. It adds Mac menus and shortcuts, CLI path discovery, CUA packaging and permission fixes for a multi-bot desktop manager, currently targeting Apple Silicon.
+
+**Getting started:** Read the [macOS build and validation guide](docs/macos.md), use Node.js 24+ and pnpm 10, and launch the source desktop app with `pnpm dev:desktop`.
+
+**Scope:** No signed, notarized macOS installer has been released. Live models, voice, cloud computers and local control have not completed end-to-end validation; upstream feature descriptions are not acceptance evidence for this branch.
+
+**本 Fork 的维护者 / Maintainer of this fork:** [SvenKunkka](https://github.com/SvenKunkka) · [X / Twitter](https://x.com/Svenu1s5)
+
+**上游项目 / Upstream:** [dongpen-max/XinyunOpenBot](https://github.com/dongpen-max/XinyunOpenBot)。保留原作者署名与原许可证 / Original authorship and license notices are retained.
+
+<a id="project-overview-zh"></a>
+## 中文项目说明
+
+dongpen-max/XinyunOpenBot 的 macOS 适配分支，保留上游历史与 MIT 许可。面向多机器人桌面管理，增加 Mac 菜单快捷键、CLI 路径发现、CUA 打包及权限相关修复，当前目标为 Apple Silicon。
+
+**使用入口：** 先读 [macOS 构建与验证说明](docs/macos.md)，使用 Node.js 24+ 与 pnpm 10；源代码桌面入口为 `pnpm dev:desktop`。
+
+**范围说明：** 未发布签名、公证的 macOS 安装包；真实模型、语音、云电脑与本机控制尚未完成端到端验证，不能将上游功能介绍等同本分支验收。
+
+<!-- SVENKUNKKA-PROJECT-INFO:END -->
+
+---
+
+
 
 # XinyunOpen Bot — macOS
 
@@ -261,30 +291,3 @@ pnpm typecheck
 Copyright © 2026 Milind Soni、OpenMausBot contributors 与 XinyunOpen Bot contributors。
 
 
----
-
-<!-- SVENKUNKKA-PROJECT-INFO:BEGIN -->
-
-<a id="project-overview-zh"></a>
-## 中文项目说明
-
-dongpen-max/XinyunOpenBot 的 macOS 适配分支，保留上游历史与 MIT 许可。面向多机器人桌面管理，增加 Mac 菜单快捷键、CLI 路径发现、CUA 打包及权限相关修复，当前目标为 Apple Silicon。
-
-**使用入口：** 先读 [macOS 构建与验证说明](docs/macos.md)，使用 Node.js 24+ 与 pnpm 10；源代码桌面入口为 `pnpm dev:desktop`。
-
-**范围说明：** 未发布签名、公证的 macOS 安装包；真实模型、语音、云电脑与本机控制尚未完成端到端验证，不能将上游功能介绍等同本分支验收。
-
-<a id="project-overview-en"></a>
-## English project overview
-
-A macOS adaptation of dongpen-max/XinyunOpenBot preserving upstream history and the MIT license. It adds Mac menus and shortcuts, CLI path discovery, CUA packaging and permission fixes for a multi-bot desktop manager, currently targeting Apple Silicon.
-
-**Getting started:** Read the [macOS build and validation guide](docs/macos.md), use Node.js 24+ and pnpm 10, and launch the source desktop app with `pnpm dev:desktop`.
-
-**Scope:** No signed, notarized macOS installer has been released. Live models, voice, cloud computers and local control have not completed end-to-end validation; upstream feature descriptions are not acceptance evidence for this branch.
-
-**本 Fork 的维护者 / Maintainer of this fork:** [SvenKunkka](https://github.com/SvenKunkka) · [X / Twitter](https://x.com/Svenu1s5)
-
-**上游项目 / Upstream:** [dongpen-max/XinyunOpenBot](https://github.com/dongpen-max/XinyunOpenBot)。保留原作者署名与原许可证 / Original authorship and license notices are retained.
-
-<!-- SVENKUNKKA-PROJECT-INFO:END -->
